@@ -14,7 +14,7 @@ function removeHtmlTag(content) {
 
 function getLanguageRefrence(language) {
   return new Promise((resolve, reject) => {
-    https.get('https://wiki.developer.mozilla.org/zh-CN/docs/Web/' + language.toUpperCase() + '/Index' + '?raw&macros', (res) => {
+    https.get('https://developer.mozilla.org/en-US/docs/Web/' + language.toUpperCase() + '/Index' + '?raw&macros', (res) => {
       if (res.statusCode !== 200) {
         return reject(new Error('😱  返回状态码 --- ', res.statusCode))
       }
@@ -22,21 +22,24 @@ function getLanguageRefrence(language) {
       let rawData = ''
       res.on('data', (chunk) => { rawData += chunk })
       res.on('end', () => {
-        const matchs = rawData.match(/<td rowspan="2">\d{1,4}<\/td>\s*<td rowspan="2"><a href="[^"\n]+?">[^<\n]+?<\/a><\/td>/g)
-        if (!matchs) {
+        const matches = rawData.match(/<td rowspan="2">\d{1,4}<\/td>\s*<td rowspan="2"><a href="[^"\n]+?">[^<\n]+?<\/a><\/td>\s*<td><strong>[^<\n]+?<\/strong><\/td>\s*<\/tr>\s*<tr>\s*<td>.+?<\/td>\s*<\/tr>/gs)
+        if (!matches) {
           return reject(new Error('😱  列表获取失败，未正确解析'))
         }
         let refrences = []
         try {
-          matchs.forEach((x, i) => {
-            const matchs = x.match(/<td rowspan="2">(\d{1,4})<\/td>\s*<td rowspan="2"><a href="([^"\n]+?)">([^<\n]+?)<\/a><\/td>/)
+          matches.forEach((x, i) => {
+            const matchs = x.match(/<td rowspan="2">(\d{1,4})<\/td>\s*<td rowspan="2"><a href="([^"\n]+?)">([^<\n]+?)<\/a><\/td>\s*<td><strong>[^<\n]+?<\/strong><\/td>\s*<\/tr>\s*<tr>\s*<td>(.+?)<\/td>\s*<\/tr>/s)
             const index = parseInt(matchs[1])
             if (index !== i + 1) {
+              console.log(x)
+              console.log(matches[i - 1])
               throw new Error('第' + (i + 1) + '条索引获取失败')
             }
-            const src = matchs[2].trim().replace('/en-US/', '/zh-CN/')
+            const src = matchs[2].trim()
             const key = removeHtmlTag(matchs[3].trim())
-            refrences.push({ key, src })
+            const summary = matchs[4].trim()
+            refrences.push({ key, src, summary })
           })
         } catch (e) {
           return reject(new Error('😱  ' + e.message))
@@ -52,20 +55,21 @@ function getLanguageRefrence(language) {
 }
 
 // 获取描述摘要
-function getDocSummary(src) {
+function getDocSummary(item) {
   return new Promise((resolve, reject) => {
-    https.get('https://wiki.developer.mozilla.org' + src + '?raw&summary', (res) => {
-      if (res.statusCode !== 200) {
-        return reject(new Error('😱  获取摘要 返回状态码 --- ' + res.statusCode + '\n' + src))
-      }
-      res.setEncoding('utf8')
-      let rawData = ''
-      res.on('data', (chunk) => { rawData += chunk })
-      res.on('end', () => {
-        rawData = removeHtmlTag(rawData).replace(/\s+/g, ' ').trim()
-        resolve(rawData)
-      })
-    })
+    // https.get('https://developer.mozilla.org' + src + '?raw&summary', (res) => {
+    //   if (res.statusCode !== 200) {
+    //     return reject(new Error('😱  获取摘要 返回状态码 --- ' + res.statusCode + '\n' + src))
+    //   }
+    //   res.setEncoding('utf8')
+    //   let rawData = ''
+    //   res.on('data', (chunk) => { rawData += chunk })
+    //   res.on('end', () => {
+    //     rawData = removeHtmlTag(rawData).replace(/\s+/g, ' ').trim()
+    //     resolve(rawData)
+    //   })
+    // })
+    resolve(removeHtmlTag(item.summary).replace(/\s+/g, ' ').trim())
   })
 }
 
@@ -90,9 +94,6 @@ function convertHtmlContent(lowerSrcArray, htmlContent) {
           anchor = shortUrl.substring(shortUrl.indexOf('#'))
           shortUrl = shortUrl.substring(0, shortUrl.indexOf('#'))
         }
-        if (shortUrl.startsWith('/en-US/')) {
-          shortUrl = shortUrl.replace('/en-US/', '/zh-CN/')
-        }
         if (lowerSrcArray.includes(shortUrl.toLowerCase())) {
           const localFile = crypto.createHash('md5').update(shortUrl.toLowerCase()).digest('hex')
           let replaceText = 'href="' + url + '"'
@@ -106,9 +107,6 @@ function convertHtmlContent(lowerSrcArray, htmlContent) {
       if (url.includes('#')) {
         anchor = url.substring(url.indexOf('#'))
         url = url.substring(0, url.indexOf('#'))
-      }
-      if (url.startsWith('/en-US/')) {
-        url = url.replace('/en-US/', '/zh-CN/')
       }
       if (lowerSrcArray.includes(url.toLowerCase())) {
         const localFile = crypto.createHash('md5').update(url.toLowerCase()).digest('hex')
@@ -145,7 +143,7 @@ function convertHtmlContent(lowerSrcArray, htmlContent) {
       htmlContent = htmlContent.replace(preRaw, '<pre><code class="css hljs">' + highlightedCode + '</code></pre>')
     })
   }
-  return `<!DOCTYPE html><html lang="zh_CN"><head><meta charset="UTF-8"><title></title><link rel="stylesheet" href="doc.css" /></head>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title></title><link rel="stylesheet" href="doc.css" /></head>
   <body>${htmlContent}</body></html>`
   // const jsSyntaxCodes = rawData.match(/<pre.*?class="syntaxbox">[\s\S]+?<\/pre>/g)
   // if (jsSyntaxCodes) {
@@ -160,6 +158,7 @@ function convertHtmlContent(lowerSrcArray, htmlContent) {
 function getDocPage(lowerSrcArray, src, language) {
   const filename = crypto.createHash('md5').update(src.toLowerCase()).digest('hex')
   const cachePath = path.join(__dirname, 'data', language, filename)
+  // 如果存在缓存, 则使用缓存中的文件
   if (fs.existsSync(cachePath)) {
     return new Promise((resolve, reject) => {
       fs.readFile(cachePath, { encoding: 'utf-8' }, (err, data) => {
@@ -170,9 +169,11 @@ function getDocPage(lowerSrcArray, src, language) {
         resolve('docs/' + filename + '.html')
       })
     })
-  } else {
+  }
+  // 没有缓存, 则下载并缓存
+  else {
     return new Promise((resolve, reject) => {
-      https.get('https://wiki.developer.mozilla.org' + src + '?raw&macros', (res) => {
+      https.get('https://developer.mozilla.org' + src + '?raw&macros', (res) => {
         if (res.statusCode !== 200) {
           if (res.statusCode === 301 || res.statusCode === 302) {
             return reject(new Error('redirect:' + res.headers['location']))
@@ -188,8 +189,12 @@ function getDocPage(lowerSrcArray, src, language) {
           if (!fs.existsSync(cacheDir)) {
             fs.mkdirSync(cacheDir)
           }
+          const dataDir = path.join(__dirname, 'public', language, 'docs')
+          if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir)
+          }
           fs.writeFileSync(path.join(cacheDir, filename), rawData)
-          fs.writeFileSync(path.join(__dirname, 'public', language, 'docs', filename + '.html'), convertHtmlContent(lowerSrcArray, rawData))
+          fs.writeFileSync(path.join(dataDir, filename + '.html'), convertHtmlContent(lowerSrcArray, rawData))
           resolve('docs/' + filename + '.html')
         })
       })
@@ -230,10 +235,10 @@ async function main() {
         if (oldItem) {
           d = oldItem.d
         } else {
-          d = await getDocSummary(item.src)
+          d = await getDocSummary(item)
         }
       } else {
-        d = await getDocSummary(item.src)
+        d = await getDocSummary(item)
       }
     } catch (e) {
       if (e.message.startsWith('redirect:')) {
@@ -249,7 +254,7 @@ async function main() {
   for (let i = 0; i < failItems.length; i++) {
     const item = failItems[i]
     try {
-      const d = await getDocSummary(item.src)
+      const d = await getDocSummary(item)
       const p = await getDocPage(lowerSrcArray, item.src, language)
       indexes.push({ t: item.key, p, d })
     } catch (e) {
