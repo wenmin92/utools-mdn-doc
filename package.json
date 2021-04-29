@@ -12,6 +12,6 @@
   "author": "beta",
   "license": "MIT",
   "devDependencies": {
-    "highlight.js": "^9.15.10"
+    "highlight.js": "^10.7.2"
   }
 }

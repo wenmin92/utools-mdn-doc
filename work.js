@@ -2,17 +2,17 @@ const https = require('https')
 const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
-const hljs = require('highlight.js/lib/highlight.js')
+const hljs = require('highlight.js/lib/core')
 hljs.registerLanguage('javascript', require('highlight.js/lib/languages/javascript'))
 hljs.registerLanguage('xml', require('highlight.js/lib/languages/xml'))
 hljs.registerLanguage('css', require('highlight.js/lib/languages/css'))
 
-function removeHtmlTag (content) {
+function removeHtmlTag(content) {
   content = content.replace(/(?:<\/?[a-z][a-z1-6]{0,9}>|<[a-z][a-z1-6]{0,9} .+?>)/gi, '')
   return content.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
 }
 
-function getLanguageRefrence (language) {
+function getLanguageRefrence(language) {
   return new Promise((resolve, reject) => {
     https.get('https://wiki.developer.mozilla.org/zh-CN/docs/Web/' + language.toUpperCase() + '/Index' + '?raw&macros', (res) => {
       if (res.statusCode !== 200) {
@@ -52,7 +52,7 @@ function getLanguageRefrence (language) {
 }
 
 // 获取描述摘要
-function getDocSummary (src) {
+function getDocSummary(src) {
   return new Promise((resolve, reject) => {
     https.get('https://wiki.developer.mozilla.org' + src + '?raw&summary', (res) => {
       if (res.statusCode !== 200) {
@@ -69,7 +69,7 @@ function getDocSummary (src) {
   })
 }
 
-function convertHtmlContent (lowerSrcArray, htmlContent) {
+function convertHtmlContent(lowerSrcArray, htmlContent) {
   htmlContent = htmlContent.replace(/<section class="Quick_links" id="Quick_Links">[\s\S]+?<\/section>/, '')
   if (htmlContent.includes('class="prevnext"')) {
     htmlContent = htmlContent.replace(/<div class="prevnext"[\s\S]+?<\/div>/g, '')
@@ -125,7 +125,7 @@ function convertHtmlContent (lowerSrcArray, htmlContent) {
   const jsCodes = htmlContent.match(/<pre.*?class="brush: ?js[^"\n]*?">[\s\S]+?<\/pre>/g)
   if (jsCodes) {
     jsCodes.forEach(preRaw => {
-      const highlightedCode = hljs.highlight('javascript', removeHtmlTag(preRaw)).value
+      const highlightedCode = hljs.highlight(removeHtmlTag(preRaw), { language: 'javascript' }).value
       htmlContent = htmlContent.replace(preRaw, '<pre><code class="javascript hljs">' + highlightedCode + '</code></pre>')
     })
   }
@@ -133,7 +133,7 @@ function convertHtmlContent (lowerSrcArray, htmlContent) {
   const htmlCodes = htmlContent.match(/<pre.*?class="brush: ?html[^"\n]*?">[\s\S]+?<\/pre>/g)
   if (htmlCodes) {
     htmlCodes.forEach(preRaw => {
-      const highlightedCode = hljs.highlight('xml', removeHtmlTag(preRaw)).value
+      const highlightedCode = hljs.highlight(removeHtmlTag(preRaw), { language: 'xml' }).value
       htmlContent = htmlContent.replace(preRaw, '<pre><code class="xml hljs">' + highlightedCode + '</code></pre>')
     })
   }
@@ -141,7 +141,7 @@ function convertHtmlContent (lowerSrcArray, htmlContent) {
   const cssCodes = htmlContent.match(/<pre.*?class="brush: ?css[^"\n]*?">[\s\S]+?<\/pre>/g)
   if (cssCodes) {
     cssCodes.forEach(preRaw => {
-      const highlightedCode = hljs.highlight('css', removeHtmlTag(preRaw)).value
+      const highlightedCode = hljs.highlight(removeHtmlTag(preRaw), { language: 'css' }).value
       htmlContent = htmlContent.replace(preRaw, '<pre><code class="css hljs">' + highlightedCode + '</code></pre>')
     })
   }
@@ -157,7 +157,7 @@ function convertHtmlContent (lowerSrcArray, htmlContent) {
 }
 
 // 获取页面
-function getDocPage (lowerSrcArray, src, language) {
+function getDocPage(lowerSrcArray, src, language) {
   const filename = crypto.createHash('md5').update(src.toLowerCase()).digest('hex')
   const cachePath = path.join(__dirname, 'data', language, filename)
   if (fs.existsSync(cachePath)) {
@@ -197,7 +197,7 @@ function getDocPage (lowerSrcArray, src, language) {
   }
 }
 
-async function main () {
+async function main() {
   const argv = process.argv.slice(2)
   const language = argv[0]
   if (!fs.existsSync(path.join(__dirname, 'data', language + '-refrences.json'))) {
