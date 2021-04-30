@@ -22,14 +22,14 @@ function getLanguageRefrence(language) {
       let rawData = ''
       res.on('data', (chunk) => { rawData += chunk })
       res.on('end', () => {
-        const matches = rawData.match(/<td rowspan="2">\d{1,4}<\/td>\s*<td rowspan="2"><a href="[^"\n]+?">[^<\n]+?<\/a><\/td>\s*<td><strong>[^<\n]+?<\/strong><\/td>\s*<\/tr>\s*<tr>\s*<td>.+?<\/td>\s*<\/tr>/gs)
+        const matches = rawData.match(/<td rowspan="2">\d{1,4}<\/td>\s*<td rowspan="2"><a href="[^"\n]+?">[^<\n]+?<\/a><\/td>\s*<td><strong>[^<\n]*?<\/strong><\/td>\s*<\/tr>\s*<tr>\s*<td>.+?<\/td>\s*<\/tr>/gs)
         if (!matches) {
           return reject(new Error('😱  列表获取失败，未正确解析'))
         }
         let refrences = []
         try {
           matches.forEach((x, i) => {
-            const matchs = x.match(/<td rowspan="2">(\d{1,4})<\/td>\s*<td rowspan="2"><a href="([^"\n]+?)">([^<\n]+?)<\/a><\/td>\s*<td><strong>[^<\n]+?<\/strong><\/td>\s*<\/tr>\s*<tr>\s*<td>(.+?)<\/td>\s*<\/tr>/s)
+            const matchs = x.match(/<td rowspan="2">(\d{1,4})<\/td>\s*<td rowspan="2"><a href="([^"\n]+?)">([^<\n]+?)<\/a><\/td>\s*<td><strong>[^<\n]*?<\/strong><\/td>\s*<\/tr>\s*<tr>\s*<td>(.+?)<\/td>\s*<\/tr>/s)
             const index = parseInt(matchs[1])
             if (index !== i + 1) {
               console.log(x)
@@ -73,7 +73,10 @@ function getDocSummary(item) {
   })
 }
 
-function convertHtmlContent(lowerSrcArray, htmlContent) {
+function convertHtmlContent(lowerSrcArray, htmlContent, src) {
+  const matches = htmlContent.match(/(?:(<ul\s+id="toc-entries"\s*>.*?<\/ul>).*?)?(<article[^\n]*?class="main-page-content"[^\n]*?>[\s\S]+?<\/article>)/s)
+  const toc = matches[1]
+  htmlContent = matches[2]
   htmlContent = htmlContent.replace(/<section class="Quick_links" id="Quick_Links">[\s\S]+?<\/section>/, '')
   if (htmlContent.includes('class="prevnext"')) {
     htmlContent = htmlContent.replace(/<div class="prevnext"[\s\S]+?<\/div>/g, '')
@@ -132,7 +135,8 @@ function convertHtmlContent(lowerSrcArray, htmlContent) {
   if (htmlCodes) {
     htmlCodes.forEach(preRaw => {
       const highlightedCode = hljs.highlight(removeHtmlTag(preRaw), { language: 'xml' }).value
-      htmlContent = htmlContent.replace(preRaw, '<pre><code class="xml hljs">' + highlightedCode + '</code></pre>')
+      const classNames = preRaw.match(/<pre.*?class="brush: ?html([^"\n]*?)">/)
+      htmlContent = htmlContent.replace(preRaw, `<pre class="${classNames[1]}"><code class="xml hljs">` + highlightedCode + '</code></pre>')
     })
   }
   // CSS 代码美化
@@ -143,8 +147,9 @@ function convertHtmlContent(lowerSrcArray, htmlContent) {
       htmlContent = htmlContent.replace(preRaw, '<pre><code class="css hljs">' + highlightedCode + '</code></pre>')
     })
   }
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title></title><link rel="stylesheet" href="doc.css" /></head>
-  <body>${htmlContent}</body></html>`
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title></title><link rel="stylesheet" href="doc.css" /></head>
+  <body><a class="view-origin" href="https://developer.mozilla.org/${src}">去MDN上查看</a>
+  <details open class="toc-container"><summary>Table of Contents</summary>${toc}</details>${htmlContent}</body></html>`
   // const jsSyntaxCodes = rawData.match(/<pre.*?class="syntaxbox">[\s\S]+?<\/pre>/g)
   // if (jsSyntaxCodes) {
   //   jsSyntaxCodes.forEach(preRaw => {
@@ -165,7 +170,7 @@ function getDocPage(lowerSrcArray, src, language) {
         if (err) {
           return reject(err)
         }
-        fs.writeFileSync(path.join(__dirname, 'public', language, 'docs', filename + '.html'), convertHtmlContent(lowerSrcArray, data))
+        fs.writeFileSync(path.join(__dirname, 'public', language, 'docs', filename + '.html'), convertHtmlContent(lowerSrcArray, data, src))
         resolve('docs/' + filename + '.html')
       })
     })
@@ -194,7 +199,7 @@ function getDocPage(lowerSrcArray, src, language) {
             fs.mkdirSync(dataDir)
           }
           fs.writeFileSync(path.join(cacheDir, filename), rawData)
-          fs.writeFileSync(path.join(dataDir, filename + '.html'), convertHtmlContent(lowerSrcArray, rawData))
+          fs.writeFileSync(path.join(dataDir, filename + '.html'), convertHtmlContent(lowerSrcArray, rawData, src))
           resolve('docs/' + filename + '.html')
         })
       })

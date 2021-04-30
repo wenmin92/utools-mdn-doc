@@ -1,17 +1,17 @@
 {
     "version": "1.0.1",
-    "pluginName": "CSS MDN Doc (EN)",
-    "description": "CSS MDN 文档英文版, 2021.4.30 更新",
+    "pluginName": "MathML MDN Doc (EN)",
+    "description": "MathML MDN 文档英文版, 2021.4.30 更新",
     "author": "wenmin92",
     "homepage": "http://wenmin92.cc",
     "preload": "preload.js",
     "logo": "logo.png",
     "features": [
         {
-            "code": "css",
-            "explain": "CSS MDN Doc (EN)",
+            "code": "mathml",
+            "explain": "MathML MDN Doc (EN)",
             "cmds": [
-                "CSS",
+                "MathML",
                 "MDN"
             ]
         }

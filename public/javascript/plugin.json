@@ -1,17 +1,17 @@
 {
   "version": "1.1.1",
-  "pluginName": "JavaScript 文档",
-  "description": "JavaScript MDN 文档",
-  "author": "uTools官方",
-  "homepage": "https://u.tools",
+  "pluginName": "JavaScript MDN Doc (EN)",
+  "description": "JavaScript MDN 文档英文版, 2021.4.30 更新",
+  "author": "wenmin92",
+  "homepage": "http://wenmin92.cc",
   "preload": "preload.js",
   "logo": "logo.png",
   "features": [
     {
       "code": "javascript",
-      "explain": "JavaScript MDN 文档速查",
+      "explain": "JavaScript MDN Doc (EN)",
       "cmds": [
-        "JavaScript"
+        "JavaScript", "MDN"
       ]
     }
   ]

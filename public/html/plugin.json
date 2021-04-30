@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "pluginName": "HTML MDN Doc",
-  "description": "HTML MDN Documentation",
+  "version": "1.0.1",
+  "pluginName": "HTML MDN Doc (EN)",
+  "description": "HTML MDN 文档英文版, 2021.4.30 更新",
   "author": "wenmin92",
   "homepage": "http://wenmin92.cc",
   "preload": "preload.js",
@@ -9,7 +9,7 @@
   "features": [
     {
       "code": "html",
-      "explain": "HTML MDN Doc",
+      "explain": "HTML MDN Doc (EN)",
       "cmds": [
         "HTML",
         "MDN"
