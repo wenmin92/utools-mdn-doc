@@ -254,7 +254,7 @@ async function main() {
       continue
     }
     indexes.push({ t, p, d })
-    console.log('ok-------', item.src)
+    console.log('ok-------', `${i + 1}/${refrences.length}`, item.src)
   }
   for (let i = 0; i < failItems.length; i++) {
     const item = failItems[i]

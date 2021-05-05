@@ -1,7 +1,7 @@
 {
     "version": "1.0.1",
-    "pluginName": "Web API/DOM MDN Doc (EN)",
-    "description": "Web API/DOM MDN 文档英文版, 2021.4.30 更新",
+    "pluginName": "Web API MDN Doc (EN)",
+    "description": "Web API MDN 文档英文版, 2021.4.30 更新",
     "author": "wenmin92",
     "homepage": "http://wenmin92.cc",
     "preload": "preload.js",
