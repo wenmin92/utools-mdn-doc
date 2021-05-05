@@ -1,5 +1,5 @@
 window.exports = {
-  'css': {
+  'mathml': {
     mode: 'doc',
     args: {
       indexes: require('./indexes.json')

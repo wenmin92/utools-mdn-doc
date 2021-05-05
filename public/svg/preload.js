@@ -1,5 +1,5 @@
 window.exports = {
-  'css': {
+  'svg': {
     mode: 'doc',
     args: {
       indexes: require('./indexes.json')
